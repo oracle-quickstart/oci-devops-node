@@ -13,7 +13,7 @@ describe('GET /', function() {
   });
   it('should say Express', function (done) {
     request.get('/').expect(200).end(function (err,result) {
-      test.string(result.text).contains('Express');
+      test.string(result.text).contains('DevOps');
       done(err);
     });    
   });
