@@ -7,6 +7,7 @@ In this example, you'll build a container image of this Express getting started 
 Let's go!
 
 ## Download the repo
+
 The first step to get started is to download the repository to your local workspace
 
 ```shell
@@ -15,6 +16,7 @@ cd oci-devops-node
 ```
 
 ## Install and run the Express example
+
 Open a terminal and test out the simple Express example - a web app that returns a "Welcome to Express" page
 
 1. Install Node 12 and NPM: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm 
@@ -24,6 +26,7 @@ Open a terminal and test out the simple Express example - a web app that returns
 1. Verify the app locally, open your browser to [http://localhost:3000/](http://localhost:3000/) or whatever port you set, if you've changed the local port
 
 ## Build a container image for the app
+
 You can locally build a container image using docker (or your favorite container image builder), to verify that you can run the app within a container
 
 ```
@@ -40,6 +43,7 @@ docker run --rm -d -p 3000:3000 --name node-express-getting-started node-express
 And open your browser to [http://localhost:3000/](http://localhost:3000/)
 
 # Build and test the app in OCI DevOps
+
 Now that you've seen you can locally build and test this app, let's build our CI/CD pipeline in OCI DevOps
 
 ## Create your Git repo
@@ -53,22 +57,26 @@ git remote add devops ssh://devops.scmservice.us-ashburn-1.oci.oraclecloud.com/n
 1. View the Getting Started Guide to connect to your Code Repository via https or ssh
 
 ## Setup your Build Pipeline
+
 Create a new Build Pipeline to build, test and deliver artifacts from a recent commit
 
 ## Managed Build stage
+
 In your Build Pipeline, first add a Managed Build stage
 1. The Build Spec File Path is the relative location in your repo of the build_spec.yaml . Leave the default, for this example
 1. For the Primary Code Repository choose your Code Repository you created above
-    1. The Name of your Primary Code Repository is used in the build_spec.yaml. In this example, you will need to use the name `node_express` for the build_spec.yaml instructions to acess this source code
-    1. Select the `main` branch
+   - The Name of your Primary Code Repository is used in the build_spec.yaml. In this example, you will need to use the name `node_express` for the build_spec.yaml instructions to acess this source code
+   - Select the `main` branch
 
 ## Create a Container Registry repository
+
 Create a [Container Registry repository](https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrycreatingarepository.htm) for the `node-express-getting-started` container image built in the Managed Build stage. 
 1. You can name the repo: `node-express-getting-started`. So if you create the repository in the Ashburn region, the path is iad.ocir.io/TENANCY-NAMESPACE/node-express-getting-started
 1. Set the repostiory access to public so that you can pull the container image without authorization, from OKE. Under "Actions", choose `Change to public`.
 
 
 ## Create a DevOps Artifact for your container image repository
+
 The version of the container image that will be delivered to the OCI repository is defined by a [parameter](https://docs.oracle.com/en-us/iaas/Content/devops/using/configuring_parameters.htm) in the Artifact URI that matches a Build Spec exported variable or Build Pipeline parameter name.
 
 Create a DevOps Artifact to point to the Container Registry repository location you just created above. Enter the information for the Artifact location:
@@ -86,7 +94,12 @@ Next, you'll set the container image tag to use the the Managed Build stage `exp
 Edit the DevOps Artifact path to add the tag value as a parameter name.
 1. Path: `iad.ocir.io/TENANCY-NAMESPACE/node-express-getting-started:${BUILDRUN_HASH}`
 
+### Edit your k8s manifest to refer to the container location
+
+Now that you've created a Container Registry repo, edit the [`gettingstarted-manifest.yaml`](gettingstarted-manifest.yaml) image path to match the repo you just created, e.g. `iad.ocir.io/TENANCY-NAMESPACE/node-express-getting-started:${BUILDRUN_HASH}`
+
 ## Add a Deliver Artifacts stage
+
 Let's add a **Deliver Artifacts** stage to your Build Pipeline to deliver the `node-express-getting-started` container to an OCI repository. 
 
 The Deliver Artifacts stage **maps** the ouput Artifacts from the Managed Build stage with the version to deliver to a DevOps Artifact resource, and then to the OCI repository.
@@ -99,19 +112,22 @@ Add a **Deliver Artifacts** stage to your Build Pipeline after the **Managed Bui
 
 # Run your Build in OCI DevOps
 
-## From your Build Pipeline, choose `Manual Run` 
+## From your Build Pipeline, choose `Manual Run`
+
 Use the Manual Run button to start a Build Run
 
 Manual Run will use the latest commit to your Primary Code Repository, if you want to specify a specific commit, you can optionally make that choice for the Primary Code Repository in the dropdown and selection below the Parameters section.
 
 
 ## Connect your Code Repository to your Build Pipeline
+
 To automatically start your Build Pipeline from a commit to your Code Repository, navigate to your Project and create a Trigger. 
 
 A Trigger is the resource to 
 filter the events from your Code Repository and on a matching event will start the run of a Build Pipeline.
 
 ## Push a commit to your DevOps Code Repository
+
 Test out your Trigger by editing a file in this repo and pushing a change to your DevOps code repository.
 
 # Connect your Build Pipeline with a Deployment Pipeline
@@ -121,7 +137,10 @@ For CI + CD: continous integration with a Build Pipeline and continuous deployme
 Because the K8s manifest doesn't change each build, we're just going to create a single version of the K8s manifest by hand (or via API/CLI), in the Artifact Registry.
 
 ## Create a DevOps Environment, Artifact Registry file, and DevOps Artifact
+
 1. Create an [Enivornment](https://docs.oracle.com/en-us/iaas/Content/devops/using/create_oke_environment.htm) to point to your OKE cluster destination for this example. You will already need to have an OKE cluster created, or go through the [Reference Architecture automated setup](https://docs.oracle.com/en/solutions/build-pipeline-using-devops/index.html).
+
+### Create the K8s manifest in the Artifact Registry
 
 1. Create a new, or use an existing [Artifact Registry repository]()
 1. Upload the sample k8s resources manifest to your new repository
@@ -145,14 +164,15 @@ You've created the references to your OKE cluster and manifest to deploy, now cr
     1. Add
 1. Add the pipeline parameters needed by the K8s manifest: `${namespace}`
     1. From the Parameters tab, add new values:
-        1. Name: `namespace`
-        1. Default value: whatever you want here: `devops-sample-app`
-        1. Description: namespace value needed by the k8s manifest
+       - Name: `namespace`
+       - Default value: whatever you want here: `devops-sample-app`
+       - Description: namespace value needed by the k8s manifest
     1. Smash that "+" button
 
 To run this pipeline on its own, you can add a parameter for `BUILDRUN_HASH` or, trigger it from the Build Pipeline which will forward the `build_spec.yaml` exported variables to the Deployment Pipeline.
 
 ## Add a Trigger Deployment stage to your Build Pipeline
+
 Once you've created your Deployment Pipeline, you can add a **Trigger Deployment** stage as the last step of your Build Pipeline.
 
 After the latest version of the container image is delivered to the Container Registry via the **Deliver Artifacts** stage, we can start a deployment to an OKE cluster
@@ -163,6 +183,6 @@ After the latest version of the container image is delivered to the Container Re
 
 From the Deployment Pipeline you selected, you can confirm the parameters of that pipeline in the Deployment Pipeline details.
 
-
 # Make this your own
+
 Fork this repo from Github and make changes if you want to play around with the sample app, the OCI DevOps build configuration, and the k8s manifest.
